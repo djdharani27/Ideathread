@@ -23,9 +23,12 @@ export default function MessageComposer({
       return;
     }
 
-    await onSubmit(trimmed);
-    setText("");
-    setFieldError("");
+    const wasSubmitted = await onSubmit(trimmed);
+
+    if (wasSubmitted) {
+      setText("");
+      setFieldError("");
+    }
   };
 
   return (

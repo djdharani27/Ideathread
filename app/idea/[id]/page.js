@@ -10,19 +10,21 @@ import MessageBubble from "../../../components/MessageBubble";
 import MessageComposer from "../../../components/MessageComposer";
 import ProtectedRoute from "../../../components/ProtectedRoute";
 import { useAuth } from "../../../components/AuthProvider";
+import { useToast } from "../../../components/ToastProvider";
 import { createMessage, listenToIdea, listenToMessagesForIdea } from "../../../lib/firestore";
 import { getInitials, getTimestampLabel } from "../../../lib/utils";
 
 function IdeaRoomContent() {
   const params = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [idea, setIdea] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loadingIdea, setLoadingIdea] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [pageError, setPageError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ function IdeaRoomContent() {
         setLoadingIdea(false);
       },
       (ideaError) => {
-        setError(ideaError.message || "Failed to load this room.");
+        setPageError(ideaError.message || "Failed to load this room.");
         setLoadingIdea(false);
       },
     );
@@ -45,7 +47,7 @@ function IdeaRoomContent() {
         setLoadingMessages(false);
       },
       (messagesError) => {
-        setError(messagesError.message || "Failed to load messages.");
+        setPageError(messagesError.message || "Failed to load messages.");
         setLoadingMessages(false);
       },
     );
@@ -65,18 +67,21 @@ function IdeaRoomContent() {
 
   const handleMessageSubmit = async (text) => {
     if (!idea) {
-      return;
+      return false;
     }
 
     setSubmitting(true);
-    setError("");
-    setSuccessMessage("");
+    setSubmitError("");
 
     try {
       await createMessage(user, idea.id, text);
-      setSuccessMessage("Reply sent.");
+      showToast("Reply sent.");
+      return true;
     } catch (submitError) {
-      setError(submitError.message || "Failed to send reply.");
+      const message = submitError.message || "Failed to send reply.";
+      setSubmitError(message);
+      showToast(message, "error");
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -147,15 +152,9 @@ function IdeaRoomContent() {
           </p>
         </div>
 
-        {error ? (
+        {pageError ? (
           <div className="border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 sm:px-5">
-            {error}
-          </div>
-        ) : null}
-
-        {successMessage ? (
-          <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 sm:px-5">
-            {successMessage}
+            {pageError}
           </div>
         ) : null}
 
@@ -191,7 +190,7 @@ function IdeaRoomContent() {
         <MessageComposer
           onSubmit={handleMessageSubmit}
           isSubmitting={submitting}
-          errorMessage={error}
+          errorMessage={submitError}
           placeholder="Jump into the discussion..."
           buttonLabel="Reply"
         />

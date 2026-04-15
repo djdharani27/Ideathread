@@ -2,6 +2,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
 import Navbar from "../components/Navbar";
+import ToastProvider from "../components/ToastProvider";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -19,10 +20,12 @@ export default function RootLayout({ children }) {
     <html lang="en" className={jakarta.variable} data-scroll-behavior="smooth">
       <body>
         <AuthProvider>
-          <div className="min-h-screen bg-[var(--color-page)] text-slate-900">
-            <Navbar />
-            <main>{children}</main>
-          </div>
+          <ToastProvider>
+            <div className="min-h-screen bg-[var(--color-page)] text-slate-900">
+              <Navbar />
+              <main>{children}</main>
+            </div>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>
