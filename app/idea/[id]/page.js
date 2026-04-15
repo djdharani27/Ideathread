@@ -11,11 +11,17 @@ import MessageComposer from "../../../components/MessageComposer";
 import ProtectedRoute from "../../../components/ProtectedRoute";
 import { useAuth } from "../../../components/AuthProvider";
 import { useToast } from "../../../components/ToastProvider";
-import { createMessage, listenToIdea, listenToMessagesForIdea } from "../../../lib/firestore";
+import {
+  createMessage,
+  listenToIdea,
+  listenToMessagesForIdea,
+  markNotificationsAsReadForIdea,
+} from "../../../lib/firestore";
 import { getInitials, getTimestampLabel } from "../../../lib/utils";
 
 function IdeaRoomContent() {
   const params = useParams();
+  const ideaId = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user } = useAuth();
   const { showToast } = useToast();
   const [idea, setIdea] = useState(null);
@@ -28,8 +34,12 @@ function IdeaRoomContent() {
   const bottomRef = useRef(null);
 
   useEffect(() => {
+    if (!ideaId) {
+      return undefined;
+    }
+
     const unsubscribeIdea = listenToIdea(
-      params.id,
+      ideaId,
       (nextIdea) => {
         setIdea(nextIdea);
         setLoadingIdea(false);
@@ -41,7 +51,7 @@ function IdeaRoomContent() {
     );
 
     const unsubscribeMessages = listenToMessagesForIdea(
-      params.id,
+      ideaId,
       (nextMessages) => {
         setMessages(nextMessages);
         setLoadingMessages(false);
@@ -56,11 +66,21 @@ function IdeaRoomContent() {
       unsubscribeIdea();
       unsubscribeMessages();
     };
-  }, [params.id]);
+  }, [ideaId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!user?.uid || !ideaId || !idea?.userId || idea.userId !== user.uid) {
+      return;
+    }
+
+    markNotificationsAsReadForIdea(user.uid, ideaId).catch((readError) => {
+      console.error("Failed to mark notifications as read", readError);
+    });
+  }, [idea?.userId, ideaId, user?.uid]);
 
   const isLoading = loadingIdea || loadingMessages;
   const orderedMessages = useMemo(() => messages, [messages]);

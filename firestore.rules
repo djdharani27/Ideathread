@@ -38,5 +38,24 @@ service cloud.firestore {
         && request.resource.data.text.size() <= 400;
       allow update, delete: if false;
     }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.recipientId is string
+        && request.resource.data.ideaId is string
+        && request.resource.data.ideaTitle is string
+        && request.resource.data.senderName is string
+        && request.resource.data.text is string
+        && request.resource.data.read == false
+        && request.resource.data.senderId != request.resource.data.recipientId
+        && exists(/databases/$(database)/documents/ideas/$(request.resource.data.ideaId));
+      allow update: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["read"])
+        && request.resource.data.read is bool;
+      allow delete: if false;
+    }
   }
 }
